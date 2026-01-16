@@ -17,3 +17,5 @@ author      Harry Shaper <harryshaper@gmail.com>
  b) made a README.mb, then committed and pushed to GitHub
  c) Made a .gitignore file and pushed it to my remote repo
  d) Made a .py file to start working on my application, pushed it
+ e) Made some changes, committed and then pushed again.
+ 
