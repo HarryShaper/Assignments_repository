@@ -14,3 +14,6 @@ author      Harry Shaper <harryshaper@gmail.com>
  b) Read the Wiki
 
 2a) Created github account, pushed local repository to GitHub
+ b) made a README.mb, then committed and pushed to GitHub
+ c) Made a .gitignore file and pushed it to my remote repo
+ d) Made a .py file to start working on my application, pushed it
