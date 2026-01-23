@@ -18,4 +18,7 @@ author      Harry Shaper <harryshaper@gmail.com>
  c) Made a .gitignore file and pushed it to my remote repo
  d) Made a .py file to start working on my application, pushed it
  e) Made some changes, committed and then pushed again.
+ f) Created "develop" branch, made change to code on line 76. Comitted this change.
+ g) Merged back into main branch then pushed.
+ h) Used "Git clone with my repository URL"
  
