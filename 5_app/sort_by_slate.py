@@ -30,7 +30,6 @@ if not os.path.isdir(SHOOT_FOLDER):
 #*********************************************************************#    
 
 #CONSTANTS
-#SHOOT_FOLDER = r"D:\VFX\assets_and_courses\courses\Advanced_python_course\course_notes\shoot_day_001"
 SLATE_LIST = []
 DATA_TYPES = []
 ORIGINAL_DATA_FOLDERS = [
@@ -75,7 +74,7 @@ def make_slate_folders():
 
     list = get_shoot_data_types()   #Gets types of shoot data listed
     for slate in SLATE_LIST:
-        slate_path = SHOOT_FOLDER + "\\" + slate 
+        slate_path = SHOOT_FOLDER + "\\" + slate.upper() 
         os.mkdir(slate_path)    #Makes a slate folder 
 
         for sub_folder in list:
@@ -110,10 +109,8 @@ def sort_data():
     #Clear original folders
     for folder in source_folders:
         if not os.listdir(folder):
-            print(f"Removing empty folder: {folder}")
             os.rmdir(folder)
-        else:
-            print(f"Skipping (not empty): {folder} -> {os.listdir(folder)}")
+        
 
 get_slates()
 make_slate_folders()
