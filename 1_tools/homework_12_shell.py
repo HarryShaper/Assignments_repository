@@ -22,6 +22,6 @@ author      Harry Shaper <harryshaper@gmail.com>
  f) Use rmdir to remove directory or del to delete the file inside
 
  2a) nuke_startup.bat
-  b) Unsure
-  c) Unsure
-  d)
+  b) Added custom paths for python and plugins - Comfortable with making variables in shell, less sure about why
+  c) Added custom paths for python and plugins - Comfortable with making variables in shell, less sure about why
+  d) Done
