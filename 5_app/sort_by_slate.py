@@ -12,9 +12,22 @@ import os
 import shutil
 import sys
 
+#*********************************************************************#
+#Fetch "generate_report.py" location
+#*********************************************************************#
+
+#Get this files folder directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+#Add this path to the system path so It can find report generator
+if SCRIPT_DIR not in sys.path:
+    sys.path.append(SCRIPT_DIR)
+
+#Fetches generate_report.py // Now usable
+import generate_report
 
 #*********************************************************************#
-#FETCH SELECTED FOLDER
+#DYNAMICALLY FETCH SELECTED FOLDER - For Right-Click / Send To
 #*********************************************************************#
 
 if len(sys.argv) < 2:
@@ -28,18 +41,21 @@ if not os.path.isdir(SHOOT_FOLDER):
     sys.exit(1)
 
 #*********************************************************************#    
-
 #CONSTANTS
+#*********************************************************************#
+
 SLATE_LIST = []
 DATA_TYPES = []
-ORIGINAL_DATA_FOLDERS = [
-    os.path.join(SHOOT_FOLDER, f)
-    for f in os.listdir(SHOOT_FOLDER)
-    if os.path.isdir(os.path.join(SHOOT_FOLDER, f))
-]
+ORIGINAL_DATA_FOLDERS = []
+
+#Looks for folders only, not files
+for f in os.listdir(SHOOT_FOLDER):
+    if os.path.isdir(os.path.join(SHOOT_FOLDER, f)):
+        ORIGINAL_DATA_FOLDERS.append(os.path.join(SHOOT_FOLDER, f))
+
 
 #CONTENTS OF SHOOT_FOLDER
-path_items = os.listdir(SHOOT_FOLDER)
+path_items = os.listdir(SHOOT_FOLDER)                         
 
 #Creates a list of each shoot data path (HDRI/PANO/SET-REF/ETC)
 def define_shoot_data():
@@ -125,3 +141,36 @@ def sort_data():
 get_slates()
 make_slate_folders()
 sort_data()
+
+#*********************************************************************#
+#Create report file ?
+#*********************************************************************#
+
+answer = input("Would you like to generate a YAML report (Y/N): ").strip().lower()
+
+if answer == "y":
+    try:
+        import generate_report
+        generate_report.generate_report(SHOOT_FOLDER)
+    except ModuleNotFoundError:
+        print("Error: generate_report.py not found or PyYAML not installed.")
+
+#*********************************************************************#
+#Rename folder to "_sorted", marking it ready for ingestion
+#*********************************************************************#
+
+rename = True #Users can set this to False if they don't want renaming to happen
+
+if rename:
+    parent_folder = os.path.dirname(SHOOT_FOLDER)
+    new_shoot_name = os.path.basename(SHOOT_FOLDER) + "_sorted"
+    new_shoot_path = os.path.join(parent_folder, new_shoot_name)
+
+    if not os.path.exists(new_shoot_path):
+        os.rename(SHOOT_FOLDER, new_shoot_path)
+        print(f"Folder renamed to: {new_shoot_path}")
+    else:
+        print(f"Folder already has _sorted: {new_shoot_path}")
+
+print("\nProcessing complete. Press Enter to exit.")
+input()  #Keeps terminal open until user presses Enter
