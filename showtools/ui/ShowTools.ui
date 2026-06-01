@@ -2410,7 +2410,7 @@ p, li { white-space: pre-wrap; }
                        </property>
                        <layout class="QHBoxLayout" name="horizontalLayout_41">
                         <item>
-                         <layout class="QHBoxLayout" name="horizontalLayout_40" stretch="0,1,0">
+                         <layout class="QHBoxLayout" name="horizontalLayout_40" stretch="0,1,0,0">
                           <property name="spacing">
                            <number>20</number>
                           </property>
@@ -2485,6 +2485,22 @@ p, li { white-space: pre-wrap; }
                              </property>
                             </item>
                            </widget>
+                          </item>
+                          <item>
+                           <spacer name="horizontalSpacer_5">
+                            <property name="orientation">
+                             <enum>Qt::Horizontal</enum>
+                            </property>
+                            <property name="sizeType">
+                             <enum>QSizePolicy::Fixed</enum>
+                            </property>
+                            <property name="sizeHint" stdset="0">
+                             <size>
+                              <width>6</width>
+                              <height>20</height>
+                             </size>
+                            </property>
+                           </spacer>
                           </item>
                           <item>
                            <widget class="QPushButton" name="btn_editWranglers">
