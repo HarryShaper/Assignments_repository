@@ -12,6 +12,7 @@ import os
 import sys
 import shutil
 import time
+from datetime import datetime
 
 from functools import wraps
 from PIL import Image, ExifTags
@@ -86,6 +87,10 @@ def get_slate_rule_map(settings_data):
 		rule_map[data_type] = rule
 
 	return rule_map
+	
+
+def is_wildcard_data_type(value):
+	return str(value).strip().lower() in {"*", "*all", "all"}
 
 
 def get_keep_structure_rule_map(settings_data):
@@ -250,9 +255,9 @@ def build_renamed_folder_name(original_name, rule, settings_data, focal_value=""
 		"{SLATE}": first,
 		"{WRANGLER}": project_details.get("wrangler", "").strip(),
 		"{UNIT}": project_details.get("unit", "").strip(),
-		"{DATE}": project_details.get("shoot_date", "").replace("-", "").strip(),
+		"{DATE}": datetime.now().strftime("%Y%m%d"),
+		"{SHOOT_DATE}": project_details.get("shoot_date", "").replace("-", "").strip(),
 		"{PROJECT}": project_details.get("project_name", "").strip(),
-		"{LOCATION}": "",
 		"{DATA_TYPE}": rule.get("data_type", "").strip(),
 		"{FOCAL}": focal_value,
 	}
@@ -461,6 +466,7 @@ def process_keep_structure_data(target_folder, settings_data):
 	- keeps existing folder structure
 	- renames capture folders in place
 	- optionally splits image types inside those folders
+	- supports wildcard data types: *, *all, all
 	"""
 	rule_map = get_keep_structure_rule_map(settings_data)
 
@@ -475,33 +481,76 @@ def process_keep_structure_data(target_folder, settings_data):
 	output_roots = set()
 	operations = []
 
-	for data_type, rule in rule_map.items():
-		data_type_folder, output_root = resolve_data_type_folder_and_output_root(
-			target_folder,
-			data_type
-		)
+	wildcard_rule = None
+	exact_rules = {}
 
-		if not data_type_folder or not output_root:
+	for data_type, rule in rule_map.items():
+		if is_wildcard_data_type(data_type):
+			wildcard_rule = rule
+		else:
+			exact_rules[data_type.lower()] = rule
+
+	child_folders = [
+		os.path.join(target_folder, name)
+		for name in os.listdir(target_folder)
+		if os.path.isdir(os.path.join(target_folder, name))
+	]
+
+	for data_type_folder in child_folders:
+		data_type = os.path.basename(os.path.normpath(data_type_folder))
+		data_type_key = data_type.lower()
+
+		rule = exact_rules.get(data_type_key)
+
+		if rule is None:
+			rule = wildcard_rule
+
+		if rule is None:
 			continue
 
+		output_root = target_folder
 		output_roots.add(output_root)
 
-		for item in os.listdir(data_type_folder):
-			src_path = os.path.join(data_type_folder, item)
+		processing_rule = rule.copy()
+		processing_rule["data_type"] = data_type
 
-			if not os.path.isdir(src_path):
-				continue
+		# If this folder directly contains images, process it as the capture folder.
+		direct_files = [
+			name for name in os.listdir(data_type_folder)
+			if os.path.isfile(os.path.join(data_type_folder, name))
+		]
+
+		direct_image_files = [
+			name for name in direct_files
+			if os.path.splitext(name)[1].lower() in {
+				".jpg", ".jpeg", ".png", ".tif", ".tiff", ".exr",
+				".dng", ".cr2", ".cr3", ".nef", ".arw", ".raf"
+			}
+		]
+
+		if direct_image_files:
+			capture_folders = [data_type_folder]
+		else:
+			capture_folders = [
+				os.path.join(data_type_folder, item)
+				for item in os.listdir(data_type_folder)
+				if os.path.isdir(os.path.join(data_type_folder, item))
+			]
+
+		for src_path in capture_folders:
+			item = os.path.basename(os.path.normpath(src_path))
 
 			focal_value = detect_folder_focal_length(src_path)
 
 			renamed_item = build_renamed_folder_name(
 				original_name=item,
-				rule=rule,
+				rule=processing_rule,
 				settings_data=settings_data,
 				focal_value=focal_value,
 			)
 
-			dst_path = os.path.join(data_type_folder, renamed_item)
+			parent_folder = os.path.dirname(src_path)
+			dst_path = os.path.join(parent_folder, renamed_item)
 
 			final_folder_path = src_path
 
@@ -517,7 +566,6 @@ def process_keep_structure_data(target_folder, settings_data):
 						"to": dst_path,
 					})
 				else:
-					# If destination exists, keep original folder to avoid overwriting
 					final_folder_path = src_path
 
 			# Apply split after rename

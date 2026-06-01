@@ -1,0 +1,17 @@
+project_details:
+  project_name: PROJECT_NAME
+package_settings:
+  rename_package: false
+  remove: ''
+  prefix: ''
+  suffix: ''
+  generate_yaml: false
+  notify_by_email: false
+  create_revert_manifest: false
+rename_rules:
+- name: '*'
+  data_type: '*'
+  sort_by: KEEP STRUCTURE
+  split_image_type: true
+  delete_empty_folders: false
+  naming_rule: '{ALL}'

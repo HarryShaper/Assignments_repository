@@ -1,0 +1,23 @@
+project_details:
+  project_name: PROJECT_NAME
+package_settings:
+  rename_package: true
+  remove: ''
+  prefix: ''
+  suffix: _SORTED
+  generate_yaml: false
+  notify_by_email: false
+  create_revert_manifest: true
+rename_rules:
+- name: HDRI
+  data_type: HDRI
+  sort_by: SLATE
+  split_image_type: false
+  delete_empty_folders: false
+  naming_rule: '{SHOOT_DATE}_{DATA_TYPE}_{ALL}'
+- name: SETREF
+  data_type: SETREF
+  sort_by: SLATE
+  split_image_type: false
+  delete_empty_folders: false
+  naming_rule: '{SHOOT_DATE}_{DATA_TYPE}_{ALL}'

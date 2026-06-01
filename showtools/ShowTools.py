@@ -41,12 +41,43 @@ CURRENT_PATH = Path(__file__).resolve().parent
 ROOT_DIR = CURRENT_PATH.parent
 
 ICONS_DIR = ROOT_DIR / "assets" / "Icons"
-PIPELINE_PROFILES_PATH = ROOT_DIR / "config" / "Pipeline_profiles"
-SHOW_DEFAULTS_DIR = ROOT_DIR / "config" / "Show_defaults"
 UI_PATH = CURRENT_PATH / "ui" / "ShowTools.ui"
 
-SELECTED_DEFAULT_SETTINGS = "GOW_MU.yaml" # CHANGE THIS <<-
+APP_NAME = "ShowTools"
 
+# ----------------------------------------------------------------------
+# Bundled config shipped with the application
+# ----------------------------------------------------------------------
+
+BUNDLED_CONFIG_DIR = ROOT_DIR / "config"
+BUNDLED_PIPELINE_PROFILES_PATH = BUNDLED_CONFIG_DIR / "Pipeline_profiles"
+BUNDLED_SHOW_DEFAULTS_DIR = BUNDLED_CONFIG_DIR / "Show_defaults"
+
+# ----------------------------------------------------------------------
+# User-writable config location
+# ----------------------------------------------------------------------
+
+def get_user_app_data_dir():
+	if sys.platform == "win32":
+		base_dir = os.environ.get("LOCALAPPDATA")
+		if base_dir:
+			return Path(base_dir) / APP_NAME
+
+		return Path.home() / "AppData" / "Local" / APP_NAME
+
+	if sys.platform == "darwin":
+		return Path.home() / "Library" / "Application Support" / APP_NAME
+
+	return Path.home() / f".{APP_NAME.lower()}"
+
+USER_APP_DATA_DIR = get_user_app_data_dir()
+
+PIPELINE_PROFILES_PATH = USER_APP_DATA_DIR / "Pipeline_profiles"
+SHOW_DEFAULTS_DIR = USER_APP_DATA_DIR / "Show_defaults"
+STARTUP_PROFILE_PATH = SHOW_DEFAULTS_DIR / "startup_profile.yaml"
+
+# Default show settings file loaded on startup
+SELECTED_DEFAULT_SETTINGS = "show_default.yaml"
 
 def icon_path(name):
 	return str(ICONS_DIR / f"{name}.png")
@@ -393,11 +424,191 @@ class CenteredItemDelegate(QtWidgets.QStyledItemDelegate):
 		super().initStyleOption(option, index)
 		option.displayAlignment = QtCore.Qt.AlignCenter
 
+#WRANGLER DIALOGUE BOX
+class WranglerDialog(QtWidgets.QDialog):
+
+	def __init__(self, wranglers, parent=None):
+		super().__init__(parent)
+
+		self.setWindowTitle("Manage Wranglers")
+		self.setWindowIcon(QtGui.QIcon(icon_path("logo")))
+		self.setModal(True)
+		self.setFixedSize(420, 360)
+
+		self.setStyleSheet("""
+			QDialog {
+				background-color: #2f2f2f;
+			}
+
+			QLabel {
+				background: transparent;
+				color: #ededed;
+			}
+
+			QLabel#dialogTitle {
+				color: #f0b000;
+				font-size: 15pt;
+				font-weight: 700;
+			}
+
+			QLabel#dialogSubtitle {
+				color: #bdbdbd;
+				font-size: 9pt;
+			}
+
+			QListWidget {
+				background-color: #1f1f1f;
+				color: #ededed;
+				border: 1px solid #4a4a4a;
+				outline: none;
+				padding: 4px;
+			}
+
+			QListWidget::item {
+				min-height: 26px;
+				padding: 4px 8px;
+			}
+
+			QListWidget::item:hover {
+				background-color: #333333;
+			}
+
+			QListWidget::item:selected {
+				background-color: #f0b000;
+				color: #111111;
+			}
+
+			QPushButton {
+				background-color: #4a4a4a;
+				color: #ededed;
+				border: none;
+				border-radius: 3px;
+				padding: 6px 10px;
+				font-weight: 600;
+				min-height: 26px;
+			}
+
+			QPushButton:hover {
+				background-color: #5a5a5a;
+			}
+
+			QPushButton:pressed {
+				background-color: #3a3a3a;
+			}
+
+			QPushButton#primaryButton {
+				background-color: #f0b000;
+				color: #111111;
+			}
+
+			QPushButton#primaryButton:hover {
+				background-color: #ffc533;
+			}
+
+			QPushButton#primaryButton:pressed {
+				background-color: #d89c00;
+			}
+
+			QPushButton#dangerButton {
+				background-color: #5a2f2f;
+				color: #ededed;
+			}
+
+			QPushButton#dangerButton:hover {
+				background-color: #743838;
+			}
+		""")
+
+		main_layout = QtWidgets.QVBoxLayout(self)
+		main_layout.setContentsMargins(18, 16, 18, 16)
+		main_layout.setSpacing(10)
+
+		title = QtWidgets.QLabel("MANAGE WRANGLERS")
+		title.setObjectName("dialogTitle")
+		main_layout.addWidget(title)
+
+		subtitle = QtWidgets.QLabel("Add, rename, or remove wranglers for this show profile.")
+		subtitle.setObjectName("dialogSubtitle")
+		main_layout.addWidget(subtitle)
+
+		self.list_widget = QtWidgets.QListWidget()
+		self.list_widget.setEditTriggers(
+			QtWidgets.QAbstractItemView.NoEditTriggers
+		)
+
+		for wrangler in wranglers:
+			item = QtWidgets.QListWidgetItem(wrangler)
+			item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+			self.list_widget.addItem(item)
+
+		self.list_widget.itemDoubleClicked.connect(
+			self.edit_wrangler_item
+		)
+		main_layout.addWidget(self.list_widget)
+
+		action_row = QtWidgets.QHBoxLayout()
+		action_row.setSpacing(8)
+
+		self.btn_add = QtWidgets.QPushButton("Add")
+		self.btn_delete = QtWidgets.QPushButton("Delete")
+		self.btn_delete.setObjectName("dangerButton")
+
+		action_row.addWidget(self.btn_add)
+		action_row.addWidget(self.btn_delete)
+
+		main_layout.addLayout(action_row)
+
+		bottom_row = QtWidgets.QHBoxLayout()
+		bottom_row.addStretch()
+
+		self.btn_save = QtWidgets.QPushButton("Save Changes")
+		self.btn_save.setObjectName("primaryButton")
+
+		bottom_row.addWidget(self.btn_save)
+
+		main_layout.addLayout(bottom_row)
+
+		self.btn_add.clicked.connect(self.add_wrangler)
+		self.btn_delete.clicked.connect(self.delete_wrangler)
+		self.btn_save.clicked.connect(self.accept)
+
+	def edit_wrangler_item(self, item):
+
+		self.list_widget.editItem(item)
+
+	def add_wrangler(self):
+		text, ok = QtWidgets.QInputDialog.getText(
+			self,
+			"Add Wrangler",
+			"Wrangler Name:"
+		)
+
+		if ok and text.strip():
+			item = QtWidgets.QListWidgetItem(text.strip())
+			item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+			self.list_widget.addItem(item)
+
+
+	def delete_wrangler(self):
+		item = self.list_widget.currentItem()
+
+		if item:
+			self.list_widget.takeItem(self.list_widget.row(item))
+
+	def get_wranglers(self):
+		return [
+			self.list_widget.item(i).text()
+			for i in range(self.list_widget.count())
+		]
+
 #ShowTools - Main App
 class ShowTools:
 
 	def __init__(self):
 		self.wgShowTools = QtCompat.loadUi(str(UI_PATH))
+		self.current_show_defaults_path = None
+		self.ensure_user_app_folders()
+		self.copy_bundled_config_if_missing()
 
 		import sys
 
@@ -458,6 +669,7 @@ class ShowTools:
 		# TOOL ICONS
 		self.wgShowTools.btn_browseConfig.setIcon(QtGui.QIcon(icon_path("browse_file_icon")))
 		self.wgShowTools.btn_browseTargetFolder.setIcon(QtGui.QIcon(icon_path("browse_file_icon")))
+		self.wgShowTools.btn_editWranglers.setIcon(QtGui.QIcon(icon_path("edit")))
 
 		# SIGNALS
 		# ------- MAIN SETINGS PAGE --------
@@ -468,6 +680,9 @@ class ShowTools:
 		self.wgShowTools.btn_browseTargetFolder.clicked.connect(self.press_browseTargetFolder)
 		self.wgShowTools.input_targetFolder.textChanged.connect(self.update_revert_button_state)
 		self.wgShowTools.btn_export.clicked.connect(self.press_export)
+		self.wgShowTools.btn_showProfile.clicked.connect(
+			self.show_profile_menu
+		)
 
 		# ------- Links
 		self.wgShowTools.btn_gmail.clicked.connect(self.press_loadGmail)
@@ -482,6 +697,7 @@ class ShowTools:
 		self.wgShowTools.btn_clearNamingRule.clicked.connect(self.press_clearNamingRule)
 		self.wgShowTools.btn_revert.clicked.connect(self.press_revert)
 		self.wgShowTools.btn_revert.setEnabled(False)
+		self.wgShowTools.btn_editWranglers.clicked.connect(self.edit_wranglers)
 	
 		# ------- RENAME TOKENS
 		self.wgShowTools.btn_token_first.clicked.connect(self.press_btn_token_first)
@@ -494,7 +710,7 @@ class ShowTools:
 		self.wgShowTools.btn_token_unit.clicked.connect(self.press_btn_token_unit)
 		self.wgShowTools.btn_token_date.clicked.connect(self.press_btn_token_date)
 		self.wgShowTools.btn_token_project.clicked.connect(self.press_btn_token_project)
-		self.wgShowTools.btn_token_location.clicked.connect(self.press_btn_token_location)
+		self.wgShowTools.btn_tokenShootDate.clicked.connect(self.press_btn_token_shoot_date)
 		self.wgShowTools.btn_token_data_type.clicked.connect(self.press_btn_token_data_type)
 		self.wgShowTools.btn_token_focal.clicked.connect(self.press_btn_token_focal)
 		
@@ -507,6 +723,9 @@ class ShowTools:
 		self.wgShowTools.input_namingRule.textChanged.connect(self.on_rule_editor_changed)
 
 		# ------- SETUP --------
+
+		self.wgShowTools.btn_linkedin.hide()
+		self.wgShowTools.btn_youtube.hide()
 
 		# ------- LIVE PREVIEW --------
 		self.wgShowTools.input_targetFolder.textChanged.connect(self.update_live_preview)
@@ -547,6 +766,10 @@ class ShowTools:
 
 		# DATE
 		self.wgShowTools.input_shootDate.setDate(QDate.currentDate())
+		self.wgShowTools.input_shootDate.setDisplayFormat("yyyy-MM-dd")
+
+		calendar = self.wgShowTools.input_shootDate.calendarWidget()
+		calendar.setMinimumSize(360, 300)
 		# PLACEHOLDER TEXT
 		self.wgShowTools.input_configFile.setPlaceholderText("Select sorting template...")
 		# TARGET FOLDER
@@ -554,7 +777,8 @@ class ShowTools:
 		# SET TAB
 		self.show_main_settings()
 		# LOAD DEFAULTS
-		self.load_show_defaults()
+		if not self.load_startup_show_profile():
+			self.load_show_defaults()
 
 		# GET PATH FROM SYS.ARGV - RIGHT CLICK, SEND TO
 		if len(sys.argv) > 1:
@@ -614,6 +838,316 @@ class ShowTools:
 	# *********************************************************************#
 	#HELPERS
 	#REVERSE MANIFEST
+
+	def load_startup_show_profile(self):
+
+		if not STARTUP_PROFILE_PATH.exists():
+			return False
+
+		try:
+			with open(STARTUP_PROFILE_PATH, "r", encoding="utf-8") as yaml_file:
+				data = yaml.safe_load(yaml_file) or {}
+
+			profile_name = data.get("startup_profile", "").strip()
+
+			if not profile_name:
+				return False
+
+			profile_path = SHOW_DEFAULTS_DIR / profile_name
+
+			if not profile_path.exists():
+				return False
+
+			if self.load_show_defaults_file(str(profile_path)):
+				self.current_show_defaults_path = str(profile_path)
+				return True
+
+			return False
+
+		except Exception as error:
+			print(f"Failed to load startup show profile: {error}")
+			return False
+
+	def press_setStartupDefault(self):
+
+		if not self.current_show_defaults_path:
+			self.show_message(
+				"Startup Default Failed",
+				"No Profile Selected",
+				"Please load or save a show profile first."
+			)
+			return
+
+		try:
+			startup_data = {
+				"startup_profile": os.path.basename(self.current_show_defaults_path)
+			}
+
+			with open(STARTUP_PROFILE_PATH, "w", encoding="utf-8") as yaml_file:
+				yaml.dump(
+					startup_data,
+					yaml_file,
+					default_flow_style=False,
+					sort_keys=False
+				)
+
+			self.show_message(
+				"Startup Default Set",
+				"Profile Will Load On Startup",
+				os.path.basename(self.current_show_defaults_path),
+				str(STARTUP_PROFILE_PATH)
+			)
+
+		except Exception as error:
+			self.show_message(
+				"Startup Default Failed",
+				"Could not set startup profile.",
+				str(error)
+			)
+
+	def show_profile_menu(self):
+
+		menu = QtWidgets.QMenu(self.wgShowTools)
+
+		menu.setStyleSheet("""
+			QMenu {
+				background-color: #2f2f2f;
+				color: #ededed;
+				border: 1px solid #4a4a4a;
+				padding: 4px;
+			}
+
+			QMenu::item {
+				background-color: transparent;
+				padding: 6px 24px 6px 12px;
+				min-width: 160px;
+			}
+
+			QMenu::item:selected {
+				background-color: #f0b000;
+				color: #111111;
+			}
+
+			QMenu::separator {
+				height: 1px;
+				background-color: #5a5a5a;
+				margin: 4px 8px;
+			}
+		""")
+
+		load_action = menu.addAction("Load Profile...")
+		save_action = menu.addAction("Save Profile As...")
+
+		menu.addSeparator()
+
+		default_action = menu.addAction(
+			"Set As Startup Default"
+		)
+
+		selected_action = menu.exec(
+			self.wgShowTools.btn_showProfile.mapToGlobal(
+				self.wgShowTools.btn_showProfile.rect().bottomLeft()
+			)
+		)
+
+		if selected_action == load_action:
+			self.press_loadShowDefaults()
+
+		elif selected_action == save_action:
+			self.press_saveShowDefaults()
+
+		elif selected_action == default_action:
+			self.press_setStartupDefault()
+
+	def load_show_defaults_file(self, file_path):
+		try:
+			with open(file_path, "r", encoding="utf-8") as f:
+				data = yaml.safe_load(f) or {}
+
+			project_defaults = data.get("project_defaults", {})
+			wrangler_defaults = data.get("wrangler_defaults", {})
+
+			project_name = project_defaults.get("project_name", "")
+			unit = project_defaults.get("unit", "")
+
+			self.wgShowTools.input_projectName.setText(project_name)
+
+			if unit:
+				idx = self.wgShowTools.input_unit.findText(unit, QtCore.Qt.MatchExactly)
+				if idx >= 0:
+					self.wgShowTools.input_unit.setCurrentIndex(idx)
+
+			wranglers = wrangler_defaults.get("options", [])
+			default_wrangler = wrangler_defaults.get("default_selection", "")
+
+			if wranglers:
+				self.wgShowTools.input_wrangler.clear()
+				self.wgShowTools.input_wrangler.addItems(wranglers)
+
+				idx = self.wgShowTools.input_wrangler.findText(
+					default_wrangler,
+					QtCore.Qt.MatchExactly
+				)
+
+				if idx >= 0:
+					self.wgShowTools.input_wrangler.setCurrentIndex(idx)
+
+			return True
+
+		except Exception as error:
+			self.show_message(
+				"Load Failed",
+				"Could not load show defaults.",
+				str(error)
+			)
+			return False
+
+	def press_loadShowDefaults(self):
+		file_path, _ = QFileDialog.getOpenFileName(
+			self.wgShowTools,
+			"Load Show Defaults",
+			str(SHOW_DEFAULTS_DIR),
+			"YAML Files (*.yaml *.yml);;All Files (*)"
+		)
+
+		if not file_path:
+			return
+
+		if self.load_show_defaults_file(file_path):
+			self.show_message(
+				"Load Successful",
+				"Show Defaults Loaded",
+				os.path.basename(file_path),
+				file_path
+			)
+			self.current_show_defaults_path = file_path
+
+	def press_saveShowDefaults(self):
+		defaults_data = self.get_show_defaults_data()
+
+		file_path, _ = QFileDialog.getSaveFileName(
+			self.wgShowTools,
+			"Save Show Defaults",
+			str(SHOW_DEFAULTS_DIR),
+			"YAML Files (*.yaml *.yml)"
+		)
+
+		if not file_path:
+			return
+
+		if not file_path.lower().endswith((".yaml", ".yml")):
+			file_path += ".yaml"
+
+		try:
+			with open(file_path, "w", encoding="utf-8") as yaml_file:
+				yaml.dump(
+					defaults_data,
+					yaml_file,
+					default_flow_style=False,
+					sort_keys=False
+				)
+
+			profile_name = os.path.basename(file_path)
+
+			self.show_message(
+				"Save Successful",
+				"Show Defaults Saved",
+				profile_name,
+				file_path
+			)
+
+			self.current_show_defaults_path = file_path
+
+		except Exception as error:
+			self.show_message(
+				"Save Failed",
+				"Could not save show defaults.",
+				str(error)
+			)
+
+
+	def get_wrangler_options(self):
+		return [
+			self.wgShowTools.input_wrangler.itemText(i).strip()
+			for i in range(self.wgShowTools.input_wrangler.count())
+			if self.wgShowTools.input_wrangler.itemText(i).strip()
+		]
+
+	def get_show_defaults_data(self):
+		project_name = self.wgShowTools.input_projectName.text().strip()
+		unit = self.wgShowTools.input_unit.currentText().strip()
+		default_wrangler = self.wgShowTools.input_wrangler.currentText().strip()
+
+		return {
+			"show_profile": {
+				"name": project_name or "Default Show",
+				"auto_load_defaults": True,
+				"apply_project_name_on_startup": True,
+				"apply_wranglers_on_startup": True,
+				"apply_email_defaults_on_startup": False,
+			},
+			"project_defaults": {
+				"project_name": project_name,
+				"unit": unit,
+			},
+			"wrangler_defaults": {
+				"options": self.get_wrangler_options(),
+				"default_selection": default_wrangler,
+			},
+			"email_defaults": {
+				"enabled_by_default": False,
+				"subject": "{project_name} {clean_package_name} ready for ingestion",
+				"body": (
+					"Hi,\n\n"
+					"{clean_package_name} is packaged and ready for ingestion.\n\n"
+					"Thanks,\n"
+				),
+				"to": [],
+				"cc": [],
+			},
+			"browser_defaults": {
+				"preferred_browser": "default",
+			},
+		}
+
+	def copy_bundled_config_if_missing(self):
+		"""
+		Copy bundled starter config files into the user-writable config folders.
+
+		This only copies files that do not already exist, so user edits are not overwritten.
+		"""
+		copy_pairs = [
+			(BUNDLED_PIPELINE_PROFILES_PATH, PIPELINE_PROFILES_PATH),
+			(BUNDLED_SHOW_DEFAULTS_DIR, SHOW_DEFAULTS_DIR),
+		]
+
+		for source_dir, destination_dir in copy_pairs:
+			if not source_dir.exists():
+				continue
+
+			destination_dir.mkdir(parents=True, exist_ok=True)
+
+			for source_file in source_dir.iterdir():
+				if not source_file.is_file():
+					continue
+
+				if source_file.suffix.lower() not in {".yaml", ".yml", ".json"}:
+					continue
+
+				destination_file = destination_dir / source_file.name
+
+				if destination_file.exists():
+					continue
+
+				shutil.copy2(source_file, destination_file)
+
+	def ensure_user_app_folders(self):
+		USER_APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+		PIPELINE_PROFILES_PATH.mkdir(parents=True, exist_ok=True)
+		SHOW_DEFAULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+	def is_wildcard_data_type(self, value):
+		return str(value).strip().lower() in {"*", "*all", "all"}
 
 	def apply_macos_ui_fixes(self):
 		import sys
@@ -1118,37 +1652,42 @@ class ShowTools:
 		widget.style().unpolish(widget)
 		widget.style().polish(widget)
 
-	def get_current_rule_source_folder(self):
+	def get_current_rule_source_folders(self):
 		"""
-		Return the matched source folder for the currently selected rule.
+		Return matched source folders for the currently selected rule.
 
 		Supports:
 		1. target_folder / data_type
 		2. target_folder itself if its name matches data_type
+		3. wildcard data type: *, *all, all
 		"""
 		if self.current_rule_index is None:
-			return None
+			return []
 
 		target_folder_text = self.wgShowTools.input_targetFolder.text().strip()
 		data_type_text = self.wgShowTools.input_dataTypeRename.text().strip()
 
 		if not target_folder_text or not data_type_text:
-			return None
+			return []
 
 		target_folder = Path(target_folder_text)
 		if not target_folder.is_dir():
-			return None
+			return []
 
-		# --- Standard mode ---
+		if self.is_wildcard_data_type(data_type_text):
+			return sorted(
+				[child for child in target_folder.iterdir() if child.is_dir()],
+				key=lambda p: p.name.lower()
+			)
+
 		candidate = target_folder / data_type_text
 		if candidate.is_dir():
-			return candidate
+			return [candidate]
 
-		# --- Single data type mode ---
 		if target_folder.name.lower() == data_type_text.lower():
-			return target_folder
+			return [target_folder]
 
-		return None
+		return []
 
 	def get_preview_folder_names(self, source_folder):
 		"""Return immediate child folder names from the matched data-type folder."""
@@ -1185,7 +1724,7 @@ class ShowTools:
 			{UNIT}
 			{DATE}
 			{PROJECT}
-			{LOCATION}
+			{SHOOT_DATE}
 			{DATA_TYPE}
 			{FOCAL}
 		"""
@@ -1220,9 +1759,9 @@ class ShowTools:
 			"{SLATE}": self.wgShowTools.input_wrangler.currentText().strip() if False else first,
 			"{WRANGLER}": self.wgShowTools.input_wrangler.currentText().strip(),
 			"{UNIT}": self.wgShowTools.input_unit.currentText().strip(),
-			"{DATE}": self.wgShowTools.input_shootDate.date().toString("yyyyMMdd"),
+			"{DATE}": datetime.now().strftime("%Y%m%d"),
 			"{PROJECT}": self.wgShowTools.input_projectName.text().strip(),
-			"{LOCATION}": "",
+			"{SHOOT_DATE}": self.wgShowTools.input_shootDate.date().toString("yyyyMMdd"),
 			"{DATA_TYPE}": rule.get("data_type", "").strip(),
 			"{FOCAL}": focal_value,
 		}
@@ -1265,7 +1804,7 @@ class ShowTools:
 			return
 
 		rule = self.rename_rules[self.current_rule_index]
-		source_folder = self.get_current_rule_source_folder()
+		source_folders = self.get_current_rule_source_folders()
 		data_type_text = self.wgShowTools.input_dataTypeRename.text().strip()
 
 		# No data type entered yet
@@ -1275,32 +1814,38 @@ class ShowTools:
 			return
 
 		# No valid matching folder
-		if source_folder is None:
+		if not source_folders:
 			self.update_data_type_field_state("missing")
 			self.set_preview_empty_state(f'No "{data_type_text}" folder found in target folder.')
 			return
 
 		self.update_data_type_field_state("valid")
 
-		folder_names = self.get_preview_folder_names(source_folder)
+		any_items_found = False
 
-		if not folder_names:
-			self.set_preview_empty_state(f'No items found inside "{source_folder.name}".')
+		for source_folder in source_folders:
+			folder_names = self.get_preview_folder_names(source_folder)
+
+			for folder_name in folder_names:
+				any_items_found = True
+
+				folder_path = source_folder / folder_name
+
+				preview_rule = rule.copy()
+				preview_rule["data_type"] = source_folder.name
+				preview_rule["focal"] = self.detect_folder_focal_length(str(folder_path))
+
+				preview_name = self.build_preview_name(folder_name, preview_rule)
+
+				preview_item = QStandardItem(preview_name)
+				preview_item.setEditable(False)
+				preview_item.setToolTip(preview_name)
+
+				self.preview_model.appendRow([preview_item])
+
+		if not any_items_found:
+			self.set_preview_empty_state("No previewable folders found.")
 			return
-
-		for folder_name in folder_names:
-			folder_path = source_folder / folder_name
-
-			preview_rule = rule.copy()
-			preview_rule["focal"] = self.detect_folder_focal_length(str(folder_path))
-
-			preview_name = self.build_preview_name(folder_name, preview_rule)
-
-			preview_item = QStandardItem(preview_name)
-			preview_item.setEditable(False)
-			preview_item.setToolTip(preview_name)
-
-			self.preview_model.appendRow([preview_item])
 
 		self.set_preview_tree_state()
 		self.wgShowTools.tree_preview.expandAll()
@@ -2048,6 +2593,25 @@ class ShowTools:
 	# *********************************************************************#
 	# PRESS - RENAME SETTINGS PAGE
 	#BUTTONS
+	def edit_wranglers(self):
+
+		current_wranglers = [
+			self.wgShowTools.input_wrangler.itemText(i)
+			for i in range(self.wgShowTools.input_wrangler.count())
+		]
+
+		dialog = WranglerDialog(
+			current_wranglers,
+			self.wgShowTools
+		)
+
+		if dialog.exec():
+
+			new_wranglers = dialog.get_wranglers()
+
+			self.wgShowTools.input_wrangler.clear()
+			self.wgShowTools.input_wrangler.addItems(new_wranglers)
+
 	def press_addRule(self):
 		rule_number = len(self.rename_rules) + 1
 
@@ -2240,8 +2804,8 @@ class ShowTools:
 	def press_btn_token_project(self):
 		self.insert_naming_token("{PROJECT}")
 
-	def press_btn_token_location(self):
-		self.insert_naming_token("{LOCATION}")
+	def press_btn_token_shoot_date(self):
+		self.insert_naming_token("{SHOOT_DATE}")
 
 	def press_btn_token_data_type(self):
 		self.insert_naming_token("{DATA_TYPE}")

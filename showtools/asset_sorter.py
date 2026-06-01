@@ -12,6 +12,7 @@ import os
 import shutil
 import time
 
+from datetime import datetime
 from functools import wraps
 from PIL import Image, ExifTags
 
@@ -37,6 +38,7 @@ def timer_function(func):
 
 # *********************************************************************#
 # RULE HELPERS
+
 def get_asset_rule_map(settings_data):
 	"""
 	Return a dictionary of:
@@ -284,14 +286,14 @@ def build_renamed_folder_name(original_name, rule, settings_data, focal_value=""
 		"{SLATE}": first,
 		"{WRANGLER}": project_details.get("wrangler", "").strip(),
 		"{UNIT}": project_details.get("unit", "").strip(),
-		"{DATE}": project_details.get("shoot_date", "").replace("-", "").strip(),
+		"{DATE}": datetime.now().strftime("%Y%m%d"),
+		"{SHOOT_DATE}": project_details.get("shoot_date", "").replace("-", "").strip(),
 		"{PROJECT}": project_details.get("project_name", "").strip(),
-		"{LOCATION}": "",
 		"{DATA_TYPE}": rule.get("data_type", "").strip(),
 		"{FOCAL}": focal_value,
 		"{ASSET_TYPE}": asset_type,
 		"{ASSET_NAME}": asset_name,
-		"{ROOT_ASSET}": asset_name,  # optional compatibility fallback
+		"{ROOT_ASSET}": asset_name,
 	}
 
 	new_name = naming_rule
