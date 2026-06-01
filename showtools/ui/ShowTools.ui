@@ -2446,13 +2446,13 @@ p, li { white-space: pre-wrap; }
                             </property>
                             <property name="minimumSize">
                              <size>
-                              <width>240</width>
+                              <width>230</width>
                               <height>28</height>
                              </size>
                             </property>
                             <property name="maximumSize">
                              <size>
-                              <width>500</width>
+                              <width>230</width>
                               <height>34</height>
                              </size>
                             </property>
