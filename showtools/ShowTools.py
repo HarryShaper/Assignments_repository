@@ -612,40 +612,147 @@ class ShowTools:
 
 		import sys
 
+		instructions_body = """
+		<h3>PIPELINE PROFILE</h3>
+		<p>Load YAML profiles that define how a package should be sorted, renamed, and processed. Profiles can be edited, reused, or created for specific tasks, shows, vendors, or pipeline requirements.</p>
+
+		<h3>PROJECT DETAILS</h3>
+		<p>Optional project, wrangler, and unit details used for tracking data and powering automated renaming tokens in the Rename Settings tab.</p>
+
+		<h3>PACKAGE SETTINGS</h3>
+		<p>Control what happens after sorting, such as tagging folders with suffixes like <b>_SORTED</b>, generating reports for ShotGrid or ftrack integration, notifying team members by email, and creating reversible sort data for later adjustments.</p>
+
+		<h3>RENAME SETTINGS</h3>
+		<p>This is where the main sorting logic is built. Create rules for specific data types such as HDRI, OVERVIEW, PANORAMA, TEXTURES, and more. ShowTools can build slate or asset folder structures, move items into the correct locations, and use metadata such as focal length for texture and photogrammetry datasets.</p>
+		"""
+
 		if sys.platform == "darwin":
-			self.wgShowTools.txtInstructions.setHtml("""
+			self.wgShowTools.txtInstructions.setHtml(f"""
 			<html>
 			<head>
 			<style>
-			body {
+
+			body {{
 				font-family: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
 				font-size: 12px;
 				line-height: 1.35;
 				color: #dddddd;
-			}
-			p {
+			}}
+
+			p {{
 				margin-top: 0px;
-				margin-bottom: 2px;
-			}
-			h3 {
+				margin-bottom: 8px;
+			}}
+
+			h3 {{
 				color: #f0b000;
-				margin-top: 10px;
+				margin-top: 12px;
 				margin-bottom: 4px;
 				font-size: 14px;
 				font-weight: 600;
-			}
+			}}
+
+			.welcome {{
+				color: #ffffff;
+				font-weight: 600;
+				margin-bottom: 12px;
+			}}
+
+			.footer {{
+				color: #ffffff;
+				font-weight: 600;
+				margin-top: 24px;
+				margin-bottom: 8px;
+			}}
+
 			</style>
 			</head>
+
 			<body>
 
-			<h3>PIPELINE PROFILE</h3>
-			<p>This is where you can load in preset sorting profiles, that are either show specific or vendor specific. This will either accept YAML or JSON files and allow pre-determined sorting and renaming conventions.</p>
+			<p class="welcome">
+			Welcome to ShowTools!<br>
+			Here's a quick overview of the application's core features.
+			</p>
 
-			<h3>PROJECT DETAILS</h3>
-			<p>This will be the main details of the data package you are sorting. This allows for easy ingestion into your pipeline.</p>
+			{instructions_body}
 
-			<h3>PACKAGE SETTINGS</h3>
-			<p>Package Settings allows users to apply changes to the data package and enable useful features such as generating YAML reports or emailing others to notify them of the package.</p>
+			<p class="footer">
+			Need more information?
+			</p>
+
+			<p>
+			Feel free to explore the resources below for additional information about ShowTools.
+			<br><br>
+			If you'd like help configuring the tool for your studio or upcoming project,
+			please don't hesitate to get in touch.
+			</p>
+
+			</body>
+			</html>
+			""")
+
+		else:
+			self.wgShowTools.txtInstructions.setHtml(f"""
+			<html>
+			<head>
+			<style>
+
+			body {{
+				font-family: "Segoe UI", Arial, sans-serif;
+				font-size: 10pt;
+				line-height: 1.35;
+				color: #dddddd;
+			}}
+
+			p {{
+				margin-top: 0px;
+				margin-bottom: 8px;
+			}}
+
+			h3 {{
+				color: #f0b000;
+				margin-top: 12px;
+				margin-bottom: 4px;
+				font-size: 11pt;
+				font-weight: 700;
+			}}
+
+			.welcome {{
+				color: #ffffff;
+				font-weight: 600;
+				margin-bottom: 12px;
+			}}
+
+			.footer {{
+				color: #ffffff;
+				font-weight: 600;
+				margin-top: 24px;
+				margin-bottom: 8px;
+			}}
+
+			</style>
+			</head>
+
+			<body>
+
+			<p class="welcome">
+			Welcome to ShowTools!<br>
+			Here's a quick overview of the application's core features.
+			</p>
+
+			{instructions_body}
+
+			<p class="footer">
+			Need more information?
+			</p>
+
+			<p>
+			Feel free to explore the resources below for additional information about ShowTools.
+			<br><br>
+			If you'd like help configuring the tool for your studio or upcoming project,
+			please don't hesitate to get in touch.
+			</p>
 
 			</body>
 			</html>
@@ -657,7 +764,7 @@ class ShowTools:
 		self.wgShowTools.btn_renameSettings.clicked.connect(self.show_rename_settings)
 
 		# WINDOW ICON
-		self.wgShowTools.setWindowIcon(QtGui.QIcon(icon_path("logo")))
+		self.wgShowTools.setWindowIcon(QtGui.QIcon(icon_path("showtools_icon_master_1024")))
 
 		# LINK ICONS
 		self.wgShowTools.btn_gmail.setIcon(QtGui.QIcon(icon_path("gmail_icon")))
@@ -670,6 +777,8 @@ class ShowTools:
 		self.wgShowTools.btn_browseConfig.setIcon(QtGui.QIcon(icon_path("browse_file_icon")))
 		self.wgShowTools.btn_browseTargetFolder.setIcon(QtGui.QIcon(icon_path("browse_file_icon")))
 		self.wgShowTools.btn_editWranglers.setIcon(QtGui.QIcon(icon_path("edit")))
+		self.wgShowTools.btn_editUnits.setIcon(QtGui.QIcon(icon_path("edit")))
+		self.wgShowTools.btn_editUnits.setText("")
 
 		# SIGNALS
 		# ------- MAIN SETINGS PAGE --------
@@ -698,6 +807,7 @@ class ShowTools:
 		self.wgShowTools.btn_revert.clicked.connect(self.press_revert)
 		self.wgShowTools.btn_revert.setEnabled(False)
 		self.wgShowTools.btn_editWranglers.clicked.connect(self.edit_wranglers)
+		self.wgShowTools.btn_editUnits.clicked.connect(self.edit_units)
 	
 		# ------- RENAME TOKENS
 		self.wgShowTools.btn_token_first.clicked.connect(self.press_btn_token_first)
@@ -838,6 +948,35 @@ class ShowTools:
 	# *********************************************************************#
 	#HELPERS
 	#REVERSE MANIFEST
+	def edit_units(self):
+
+		current_units = self.get_unit_options()
+
+		dialog = WranglerDialog(
+			current_units,
+			self.wgShowTools
+		)
+
+		dialog.setWindowTitle("Manage Units")
+
+		if dialog.exec():
+
+			current_selection = self.wgShowTools.input_unit.currentText().strip()
+			new_units = dialog.get_wranglers()
+
+			self.wgShowTools.input_unit.clear()
+			self.wgShowTools.input_unit.addItems(new_units)
+
+			if current_selection in new_units:
+				self.wgShowTools.input_unit.setCurrentText(current_selection)
+
+
+	def get_unit_options(self):
+		return [
+			self.wgShowTools.input_unit.itemText(i).strip()
+			for i in range(self.wgShowTools.input_unit.count())
+			if self.wgShowTools.input_unit.itemText(i).strip()
+		]
 
 	def load_startup_show_profile(self):
 
@@ -965,18 +1104,34 @@ class ShowTools:
 				data = yaml.safe_load(f) or {}
 
 			project_defaults = data.get("project_defaults", {})
+			unit_defaults = data.get("unit_defaults", {})
 			wrangler_defaults = data.get("wrangler_defaults", {})
 
 			project_name = project_defaults.get("project_name", "")
-			unit = project_defaults.get("unit", "")
-
 			self.wgShowTools.input_projectName.setText(project_name)
 
-			if unit:
-				idx = self.wgShowTools.input_unit.findText(unit, QtCore.Qt.MatchExactly)
+			# ---------- Units ----------
+			units = unit_defaults.get("options", [])
+			default_unit = unit_defaults.get("default_selection", "")
+
+			# Backward compatibility with older profiles
+			if not default_unit:
+				default_unit = project_defaults.get("unit", "")
+
+			if units:
+				self.wgShowTools.input_unit.clear()
+				self.wgShowTools.input_unit.addItems(units)
+
+			if default_unit:
+				idx = self.wgShowTools.input_unit.findText(
+					default_unit,
+					QtCore.Qt.MatchExactly
+				)
+
 				if idx >= 0:
 					self.wgShowTools.input_unit.setCurrentIndex(idx)
 
+			# ---------- Wranglers ----------
 			wranglers = wrangler_defaults.get("options", [])
 			default_wrangler = wrangler_defaults.get("default_selection", "")
 
@@ -984,6 +1139,7 @@ class ShowTools:
 				self.wgShowTools.input_wrangler.clear()
 				self.wgShowTools.input_wrangler.addItems(wranglers)
 
+			if default_wrangler:
 				idx = self.wgShowTools.input_wrangler.findText(
 					default_wrangler,
 					QtCore.Qt.MatchExactly
@@ -1089,6 +1245,10 @@ class ShowTools:
 			"project_defaults": {
 				"project_name": project_name,
 				"unit": unit,
+			},
+			"unit_defaults": {
+				"options": self.get_unit_options(),
+				"default_selection": self.wgShowTools.input_unit.currentText().strip(),
 			},
 			"wrangler_defaults": {
 				"options": self.get_wrangler_options(),

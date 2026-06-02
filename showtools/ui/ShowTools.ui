@@ -2542,7 +2542,7 @@ p, li { white-space: pre-wrap; }
                        </property>
                        <layout class="QHBoxLayout" name="horizontalLayout_43">
                         <item>
-                         <layout class="QHBoxLayout" name="horizontalLayout_42" stretch="0,1,0">
+                         <layout class="QHBoxLayout" name="horizontalLayout_42" stretch="0,1,0,0">
                           <property name="spacing">
                            <number>20</number>
                           </property>
@@ -2578,13 +2578,13 @@ p, li { white-space: pre-wrap; }
                             </property>
                             <property name="minimumSize">
                              <size>
-                              <width>140</width>
+                              <width>230</width>
                               <height>28</height>
                              </size>
                             </property>
                             <property name="maximumSize">
                              <size>
-                              <width>160</width>
+                              <width>230</width>
                               <height>34</height>
                              </size>
                             </property>
@@ -2629,13 +2629,35 @@ p, li { white-space: pre-wrap; }
                             <property name="orientation">
                              <enum>Qt::Horizontal</enum>
                             </property>
+                            <property name="sizeType">
+                             <enum>QSizePolicy::Fixed</enum>
+                            </property>
                             <property name="sizeHint" stdset="0">
                              <size>
-                              <width>40</width>
+                              <width>6</width>
                               <height>20</height>
                              </size>
                             </property>
                            </spacer>
+                          </item>
+                          <item>
+                           <widget class="QPushButton" name="btn_editUnits">
+                            <property name="minimumSize">
+                             <size>
+                              <width>28</width>
+                              <height>28</height>
+                             </size>
+                            </property>
+                            <property name="maximumSize">
+                             <size>
+                              <width>28</width>
+                              <height>28</height>
+                             </size>
+                            </property>
+                            <property name="text">
+                             <string/>
+                            </property>
+                           </widget>
                           </item>
                          </layout>
                         </item>
