@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\FileSplitter]
+@="Split Files by Type"
+"Icon"="D:\\VFX\\assets_and_courses\\courses\\Advanced_python_course\\Assignments_repository\\5_app\\FileSplitter\\FileSplitter.ico"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\FileSplitter\command]
+@="\"D:\\VFX\\assets_and_courses\\courses\\Advanced_python_course\\Assignments_repository\\5_app\\FileSplitter\\run_file_splitter.bat\" \"%V\""

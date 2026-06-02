@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>icons/logo.png</file>
+        <file>icons/gmail_icon.png</file>
+        <file>icons/github_icon.png</file>
+        <file>icons/linkedin_icon.png</file>
+        <file>icons/youtube_icon.png</file>
+        <file>icons/browse_file_icon.png</file>
+        <file>icons/delete.png</file>
+        <file>icons/down.png</file>
+        <file>icons/calendar.png</file>
+    </qresource>
+</RCC>
