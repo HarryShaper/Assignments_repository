@@ -1029,6 +1029,7 @@ class ShowTools:
 	# *********************************************************************#
 	#HELPERS
 	#REVERSE MANIFEST
+
 	def edit_units(self):
 
 		current_units = self.get_unit_options()

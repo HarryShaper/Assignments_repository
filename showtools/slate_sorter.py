@@ -295,6 +295,28 @@ def build_renamed_folder_name(original_name, rule, settings_data, focal_value=""
 
 # *********************************************************************#
 # HELPERS
+
+def is_effectively_empty(folder_path):
+	if not os.path.isdir(folder_path):
+		return False
+
+	ignored_files = {
+		".DS_Store",
+		"Thumbs.db",
+		"desktop.ini",
+	}
+
+	for item in os.listdir(folder_path):
+		if item in ignored_files:
+			continue
+
+		if item.startswith("._"):
+			continue
+
+		return False
+
+	return True
+
 def is_single_data_type_input(target_folder, settings_data):
 	target_name = os.path.basename(os.path.normpath(target_folder)).lower()
 
@@ -537,7 +559,16 @@ def sort_slate_data(target_folder, settings_data):
 				})
 
 	for folder in source_folders:
-		if os.path.exists(folder) and not os.listdir(folder):
+		if is_effectively_empty(folder):
+			for item in os.listdir(folder):
+				item_path = os.path.join(folder, item)
+
+				if item == ".DS_Store" or item.startswith("._"):
+					try:
+						os.remove(item_path)
+					except Exception:
+						pass
+
 			os.rmdir(folder)
 
 	return {
