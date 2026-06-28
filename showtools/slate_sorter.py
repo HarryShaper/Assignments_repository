@@ -123,6 +123,26 @@ def parse_name_segments(original_name):
 
 	return [segment for segment in original_name.split("_") if segment]
 
+def get_slate_element_count(settings_data):
+	package_settings = settings_data.get("package_settings", {})
+
+	try:
+		count = int(package_settings.get("slate_element_count", 1))
+	except Exception:
+		count = 1
+
+	return max(1, count)
+
+
+def extract_slate_name(original_name, settings_data):
+	segments = parse_name_segments(original_name)
+	count = get_slate_element_count(settings_data)
+
+	if not segments:
+		return original_name.upper()
+
+	return "_".join(segments[:count]).upper()
+
 
 def format_focal_length_value(focal_raw):
 	"""
@@ -252,7 +272,7 @@ def build_renamed_folder_name(original_name, rule, settings_data, focal_value=""
 		"{FIRST}": first,
 		"{REST}": rest,
 		"{LAST}": last,
-		"{SLATE}": first,
+		"{SLATE}": extract_slate_name(original_name, settings_data),
 		"{WRANGLER}": project_details.get("wrangler", "").strip(),
 		"{UNIT}": project_details.get("unit", "").strip(),
 		"{DATE}": datetime.now().strftime("%Y%m%d"),
@@ -371,7 +391,12 @@ def sort_slate_data(target_folder, settings_data):
 	2. Single data type folder input
 
 	Destination structure:
+
+	Multiple captures for same slate/data type:
 		output_root / SLATES / SLATE / DATA_TYPE / RENAMED_CAPTURE_FOLDER
+
+	Single capture for same slate/data type:
+		output_root / SLATES / SLATE / DATA_TYPE / contents
 	"""
 	moves = []
 	operations = []
@@ -399,7 +424,7 @@ def sort_slate_data(target_folder, settings_data):
 		source_folders.append(data_type_folder)
 		output_roots.add(output_root)
 
-		slates_root = os.path.join(output_root, "SLATES")
+		slates_root = os.path.join(output_root, "slates")
 		os.makedirs(slates_root, exist_ok=True)
 
 		for item in os.listdir(data_type_folder):
@@ -408,7 +433,7 @@ def sort_slate_data(target_folder, settings_data):
 			if not os.path.isdir(src_path):
 				continue
 
-			slate = item.split("_")[0].upper()
+			slate = extract_slate_name(item, settings_data)
 			focal_value = detect_folder_focal_length(src_path)
 
 			renamed_item = build_renamed_folder_name(
@@ -418,33 +443,98 @@ def sort_slate_data(target_folder, settings_data):
 				focal_value=focal_value,
 			)
 
-			dst_path = os.path.join(
+			dst_parent = os.path.join(
 				slates_root,
 				slate,
-				data_type,
+				data_type
+			)
+
+			dst_path = os.path.join(
+				dst_parent,
 				renamed_item
 			)
 
-			moves.append((src_path, dst_path, rule))
+			moves.append({
+				"src": src_path,
+				"dst": dst_path,
+				"dst_parent": dst_parent,
+				"rule": rule,
+			})
 
-	for src, dst, rule in moves:
-		os.makedirs(os.path.dirname(dst), exist_ok=True)
-		shutil.move(src, dst)
+	# Count how many capture folders are going into each SLATE / DATA_TYPE folder
+	destination_counts = {}
 
-		operations.append({
-			"type": "move",
-			"from": src,
-			"to": dst,
-		})
+	for move in moves:
+		dst_parent = move["dst_parent"]
+		destination_counts[dst_parent] = destination_counts.get(dst_parent, 0) + 1
 
-		if rule.get("split_image_type", False) and os.path.isdir(dst):
-			file_split(dst)
+	for move in moves:
+		src = move["src"]
+		dst = move["dst"]
+		dst_parent = move["dst_parent"]
+		rule = move["rule"]
+
+		os.makedirs(dst_parent, exist_ok=True)
+
+		should_flatten = destination_counts.get(dst_parent, 0) == 1
+
+		if should_flatten:
+			moved_items = []
+
+			for child in os.listdir(src):
+				child_src = os.path.join(src, child)
+				child_dst = os.path.join(dst_parent, child)
+
+				if os.path.exists(child_dst):
+					base, ext = os.path.splitext(child)
+					child_dst = os.path.join(
+						dst_parent,
+						f"{base}_copy{ext}"
+					)
+
+				shutil.move(child_src, child_dst)
+				moved_items.append({
+					"from": child_src,
+					"to": child_dst,
+				})
+
+			if os.path.exists(src) and not os.listdir(src):
+				os.rmdir(src)
 
 			operations.append({
-				"type": "split",
-				"folder": dst,
-				"created_subfolders": [],
+				"type": "flatten_move",
+				"from": src,
+				"to": dst_parent,
+				"items": moved_items,
 			})
+
+			if rule.get("split_image_type", False) and os.path.isdir(dst_parent):
+				file_split(dst_parent)
+
+				operations.append({
+					"type": "split",
+					"folder": dst_parent,
+					"created_subfolders": [],
+				})
+
+		else:
+			os.makedirs(os.path.dirname(dst), exist_ok=True)
+			shutil.move(src, dst)
+
+			operations.append({
+				"type": "move",
+				"from": src,
+				"to": dst,
+			})
+
+			if rule.get("split_image_type", False) and os.path.isdir(dst):
+				file_split(dst)
+
+				operations.append({
+					"type": "split",
+					"folder": dst,
+					"created_subfolders": [],
+				})
 
 	for folder in source_folders:
 		if os.path.exists(folder) and not os.listdir(folder):
@@ -651,7 +741,7 @@ def run_slate_sorter(target_folder, settings_data):
 		manifest_root = output_root
 		package_rename_target = output_root
 
-	slates_root = os.path.join(output_root, "SLATES")
+	slates_root = os.path.join(output_root, "slates")
 
 	empty_folders = []
 	if flag_empty_folders and not create_revert_manifest:

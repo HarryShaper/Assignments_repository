@@ -427,10 +427,23 @@ class CenteredItemDelegate(QtWidgets.QStyledItemDelegate):
 #WRANGLER DIALOGUE BOX
 class WranglerDialog(QtWidgets.QDialog):
 
-	def __init__(self, wranglers, parent=None):
+	def __init__(
+		self,
+		items,
+		title_text="Manage Items",
+		subtitle_text="Add, rename, or remove items for this show profile.",
+		add_dialog_title="Add Item",
+		add_dialog_label="Item Name:",
+		parent=None
+	):
 		super().__init__(parent)
 
-		self.setWindowTitle("Manage Wranglers")
+		self.title_text = title_text
+		self.subtitle_text = subtitle_text
+		self.add_dialog_title = add_dialog_title
+		self.add_dialog_label = add_dialog_label
+
+		self.setWindowTitle(title_text)
 		self.setWindowIcon(QtGui.QIcon(icon_path("logo")))
 		self.setModal(True)
 		self.setFixedSize(420, 360)
@@ -523,11 +536,11 @@ class WranglerDialog(QtWidgets.QDialog):
 		main_layout.setContentsMargins(18, 16, 18, 16)
 		main_layout.setSpacing(10)
 
-		title = QtWidgets.QLabel("MANAGE WRANGLERS")
+		title = QtWidgets.QLabel(title_text.upper())
 		title.setObjectName("dialogTitle")
 		main_layout.addWidget(title)
 
-		subtitle = QtWidgets.QLabel("Add, rename, or remove wranglers for this show profile.")
+		subtitle = QtWidgets.QLabel(subtitle_text)
 		subtitle.setObjectName("dialogSubtitle")
 		main_layout.addWidget(subtitle)
 
@@ -536,14 +549,15 @@ class WranglerDialog(QtWidgets.QDialog):
 			QtWidgets.QAbstractItemView.NoEditTriggers
 		)
 
-		for wrangler in wranglers:
-			item = QtWidgets.QListWidgetItem(wrangler)
+		for item_text in items:
+			item = QtWidgets.QListWidgetItem(item_text)
 			item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
 			self.list_widget.addItem(item)
 
 		self.list_widget.itemDoubleClicked.connect(
 			self.edit_wrangler_item
 		)
+
 		main_layout.addWidget(self.list_widget)
 
 		action_row = QtWidgets.QHBoxLayout()
@@ -577,16 +591,15 @@ class WranglerDialog(QtWidgets.QDialog):
 		self.list_widget.editItem(item)
 
 	def add_wrangler(self):
+
 		text, ok = QtWidgets.QInputDialog.getText(
 			self,
-			"Add Wrangler",
-			"Wrangler Name:"
+			self.add_dialog_title,
+			self.add_dialog_label
 		)
 
 		if ok and text.strip():
-			item = QtWidgets.QListWidgetItem(text.strip())
-			item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
-			self.list_widget.addItem(item)
+			self.list_widget.addItem(text.strip())
 
 
 	def delete_wrangler(self):
@@ -601,6 +614,67 @@ class WranglerDialog(QtWidgets.QDialog):
 			for i in range(self.list_widget.count())
 		]
 
+class LoadingDialog(QtWidgets.QDialog):
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+
+		self.setWindowTitle("ShowTools")
+		self.setModal(True)
+		self.setFixedSize(380, 150)
+		self.setWindowFlags(
+			self.windowFlags() & ~QtCore.Qt.WindowContextHelpButtonHint
+		)
+
+		layout = QtWidgets.QVBoxLayout(self)
+		layout.setContentsMargins(22, 18, 22, 18)
+		layout.setSpacing(10)
+
+		title = QtWidgets.QLabel("SHOWTOOLS")
+		title.setObjectName("dialogTitle")
+		layout.addWidget(title)
+
+		message = QtWidgets.QLabel(
+			"Sorting package...\nPlease wait while your data is being organised."
+		)
+		message.setWordWrap(True)
+		layout.addWidget(message)
+
+		self.progress_bar = QtWidgets.QProgressBar()
+		self.progress_bar.setRange(0, 0)
+		self.progress_bar.setTextVisible(False)
+		layout.addWidget(self.progress_bar)
+
+		self.setStyleSheet("""
+			QDialog {
+				background-color: #2f2f2f;
+			}
+
+			QLabel {
+				background: transparent;
+				color: #ededed;
+			}
+
+			QLabel#dialogTitle {
+				color: #f0b000;
+				font-size: 15pt;
+				font-weight: 700;
+			}
+
+			QProgressBar {
+				background-color: #1f1f1f;
+				border: 1px solid #4a4a4a;
+				border-radius: 3px;
+				min-height: 18px;
+			}
+
+			QProgressBar::chunk {
+				background-color: #4CAF50;
+				border-radius: 2px;
+			}
+		""")
+
+
 #ShowTools - Main App
 class ShowTools:
 
@@ -609,6 +683,11 @@ class ShowTools:
 		self.current_show_defaults_path = None
 		self.ensure_user_app_folders()
 		self.copy_bundled_config_if_missing()
+
+		self.wgShowTools.input_wrangler.setView(QtWidgets.QListView())
+		self.wgShowTools.input_unit.setView(QtWidgets.QListView())
+
+		self.slate_element_count = 1
 
 		import sys
 
@@ -779,6 +858,9 @@ class ShowTools:
 		self.wgShowTools.btn_editWranglers.setIcon(QtGui.QIcon(icon_path("edit")))
 		self.wgShowTools.btn_editUnits.setIcon(QtGui.QIcon(icon_path("edit")))
 		self.wgShowTools.btn_editUnits.setText("")
+		self.wgShowTools.btn_slateSettings.setIcon(QtGui.QIcon(icon_path("slate")))
+		self.wgShowTools.btn_slateSettings.setText("")
+		self.wgShowTools.btn_slateSettings.setIconSize(QtCore.QSize(16, 16))
 
 		# SIGNALS
 		# ------- MAIN SETINGS PAGE --------
@@ -789,9 +871,8 @@ class ShowTools:
 		self.wgShowTools.btn_browseTargetFolder.clicked.connect(self.press_browseTargetFolder)
 		self.wgShowTools.input_targetFolder.textChanged.connect(self.update_revert_button_state)
 		self.wgShowTools.btn_export.clicked.connect(self.press_export)
-		self.wgShowTools.btn_showProfile.clicked.connect(
-			self.show_profile_menu
-		)
+		self.wgShowTools.btn_showProfile.clicked.connect(self.show_profile_menu)
+		self.wgShowTools.btn_slateSettings.clicked.connect(self.open_slate_settings)
 
 		# ------- Links
 		self.wgShowTools.btn_gmail.clicked.connect(self.press_loadGmail)
@@ -954,7 +1035,11 @@ class ShowTools:
 
 		dialog = WranglerDialog(
 			current_units,
-			self.wgShowTools
+			title_text="Manage Units",
+			subtitle_text="Add, rename, or remove units for this show profile.",
+			add_dialog_title="Add Unit",
+			add_dialog_label="Unit Name:",
+			parent=self.wgShowTools
 		)
 
 		dialog.setWindowTitle("Manage Units")
@@ -977,6 +1062,114 @@ class ShowTools:
 			for i in range(self.wgShowTools.input_unit.count())
 			if self.wgShowTools.input_unit.itemText(i).strip()
 		]
+
+	def open_slate_settings(self):
+
+		dialog = QtWidgets.QDialog(self.wgShowTools)
+		dialog.setWindowTitle("Slate Settings")
+		dialog.setModal(True)
+		dialog.setFixedSize(360, 190)
+
+		layout = QtWidgets.QVBoxLayout(dialog)
+		layout.setContentsMargins(18, 16, 18, 16)
+		layout.setSpacing(10)
+
+		title = QtWidgets.QLabel("SLATE SETTINGS")
+		title.setObjectName("dialogTitle")
+		layout.addWidget(title)
+
+		description = QtWidgets.QLabel(
+			"Choose how many underscore-separated elements should be used to identify a slate."
+		)
+		description.setWordWrap(True)
+		layout.addWidget(description)
+
+		row = QtWidgets.QHBoxLayout()
+
+		label = QtWidgets.QLabel("Slate Elements")
+		spinbox = QtWidgets.QSpinBox()
+		spinbox.setMinimum(1)
+		spinbox.setMaximum(5)
+		spinbox.setValue(self.slate_element_count)
+
+		row.addWidget(label)
+		row.addWidget(spinbox)
+
+		layout.addLayout(row)
+
+		example = QtWidgets.QLabel(
+			"1 = 19A\n2 = 201_19A\n3 = 201_19A_MainUnit"
+		)
+		example.setObjectName("dialogSubtitle")
+		layout.addWidget(example)
+
+		button_row = QtWidgets.QHBoxLayout()
+		button_row.addStretch()
+
+		save_btn = QtWidgets.QPushButton("Save")
+		save_btn.setObjectName("primaryButton")
+		button_row.addWidget(save_btn)
+
+		layout.addLayout(button_row)
+
+		dialog.setStyleSheet("""
+			QDialog {
+				background-color: #2f2f2f;
+			}
+
+			QLabel {
+				background: transparent;
+				color: #ededed;
+			}
+
+			QLabel#dialogTitle {
+				color: #f0b000;
+				font-size: 15pt;
+				font-weight: 700;
+			}
+
+			QLabel#dialogSubtitle {
+				color: #bdbdbd;
+				font-size: 9pt;
+			}
+
+			QSpinBox {
+				background-color: #d6d6d6;
+				color: #1b1b1b;
+				border: 1px solid #bcbcbc;
+				border-radius: 2px;
+				padding: 2px 6px;
+				min-height: 24px;
+			}
+
+			QSpinBox:focus {
+				border: 1px solid #f0b000;
+			}
+
+			QPushButton {
+				background-color: #4a4a4a;
+				color: #ededed;
+				border: none;
+				border-radius: 3px;
+				padding: 6px 10px;
+				font-weight: 600;
+				min-height: 26px;
+			}
+
+			QPushButton#primaryButton {
+				background-color: #f0b000;
+				color: #111111;
+			}
+
+			QPushButton#primaryButton:hover {
+				background-color: #ffc533;
+			}
+		""")
+
+		save_btn.clicked.connect(dialog.accept)
+
+		if dialog.exec():
+			self.slate_element_count = spinbox.value()
 
 	def load_startup_show_profile(self):
 
@@ -1582,6 +1775,7 @@ class ShowTools:
 				"generate_yaml": self.wgShowTools.chk_generateYAML.isChecked(),
 				"notify_by_email": self.wgShowTools.chk_notifyByEmail.isChecked(),
 				"create_revert_manifest": self.wgShowTools.chk_reverseManifest.isChecked(),
+				"slate_element_count": self.slate_element_count,
 			},
 			"rename_rules": self.rename_rules,
 		}
@@ -2421,6 +2615,13 @@ class ShowTools:
 			self.wgShowTools.chk_reverseManifest.setChecked(
 				package_settings.get("create_revert_manifest", True)
 			)
+			self.slate_element_count = int(
+				package_settings.get("slate_element_count", 1)
+			)
+
+			self.wgShowTools.btn_slateSettings.setToolTip(
+				f"Slate Settings\n\nCurrent slate elements: {self.slate_element_count}"
+			)
 
 			# ------------------------------------------------
 			# Rename Rules
@@ -2530,7 +2731,13 @@ class ShowTools:
 		generate_yaml = package_settings.get("generate_yaml", False)
 		create_revert_manifest = package_settings.get("create_revert_manifest", True)
 
+		loading_dialog = LoadingDialog(self.wgShowTools)
+		loading_dialog.show()
+		QtWidgets.QApplication.processEvents()
+
 		try:
+			settings_data.setdefault("package_settings", {})
+			settings_data["package_settings"]["slate_element_count"] = self.slate_element_count
 			slate_result = run_slate_sorter(folder_path, settings_data)
 			asset_result = run_asset_sorter(folder_path, settings_data)
 
@@ -2664,7 +2871,7 @@ class ShowTools:
 				self.email_to = self.email_defaults.get("to", [])
 				self.email_cc = self.email_defaults.get("cc", [])
 
-			slates_path = os.path.join(final_output_root, "SLATES")
+			slates_path = os.path.join(final_output_root, "slates")
 
 			if flagged_count == 1:
 				detail_text = "1 folder was flagged as missing."
@@ -2698,6 +2905,9 @@ class ShowTools:
 				"Could not complete export.",
 				str(error)
 			)
+
+		finally:
+			loading_dialog.close()
 
 	# PRESS BROWSE FILES
 	def press_browseConfig(self):
@@ -2762,7 +2972,11 @@ class ShowTools:
 
 		dialog = WranglerDialog(
 			current_wranglers,
-			self.wgShowTools
+			title_text="Manage Wranglers",
+			subtitle_text="Add, rename, or remove wranglers for this show profile.",
+			add_dialog_title="Add Wrangler",
+			add_dialog_label="Wrangler Name:",
+			parent=self.wgShowTools
 		)
 
 		if dialog.exec():

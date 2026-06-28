@@ -459,6 +459,23 @@ QComboBox QAbstractItemView {
     outline: none;
 }
 
+QComboBox QAbstractItemView::item {
+    background-color: #2f2f2f;
+    color: #ededed;
+    padding: 4px 8px;
+    min-height: 22px;
+}
+
+QComboBox QAbstractItemView::item:hover {
+    background-color: #3a3a3a;
+    color: #ffffff;
+}
+
+QComboBox QAbstractItemView::item:selected {
+    background-color: #f0b000;
+    color: #111111;
+}
+
 
 /* ============================= */
 /* DATE EDIT */
@@ -1336,7 +1353,7 @@ QPushButton#btn_editWranglers:pressed {
                   </size>
                  </property>
                  <property name="text">
-                  <string>V1.0.0</string>
+                  <string>V1.1.0</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -2192,6 +2209,9 @@ p, li { white-space: pre-wrap; }
                      </property>
                      <item>
                       <layout class="QHBoxLayout" name="horizontalLayout_70">
+                       <property name="spacing">
+                        <number>0</number>
+                       </property>
                        <item>
                         <widget class="QLabel" name="title_projectDetails">
                          <property name="font">
@@ -2211,6 +2231,19 @@ p, li { white-space: pre-wrap; }
                         </widget>
                        </item>
                        <item>
+                        <spacer name="horizontalSpacer_12">
+                         <property name="orientation">
+                          <enum>Qt::Horizontal</enum>
+                         </property>
+                         <property name="sizeHint" stdset="0">
+                          <size>
+                           <width>40</width>
+                           <height>20</height>
+                          </size>
+                         </property>
+                        </spacer>
+                       </item>
+                       <item>
                         <widget class="QPushButton" name="btn_showProfile">
                          <property name="minimumSize">
                           <size>
@@ -2226,6 +2259,47 @@ p, li { white-space: pre-wrap; }
                          </property>
                          <property name="text">
                           <string>PROFILE ▼</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <spacer name="horizontalSpacer_11">
+                         <property name="orientation">
+                          <enum>Qt::Horizontal</enum>
+                         </property>
+                         <property name="sizeType">
+                          <enum>QSizePolicy::Fixed</enum>
+                         </property>
+                         <property name="sizeHint" stdset="0">
+                          <size>
+                           <width>10</width>
+                           <height>20</height>
+                          </size>
+                         </property>
+                        </spacer>
+                       </item>
+                       <item>
+                        <widget class="QPushButton" name="btn_slateSettings">
+                         <property name="sizePolicy">
+                          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                           <horstretch>0</horstretch>
+                           <verstretch>0</verstretch>
+                          </sizepolicy>
+                         </property>
+                         <property name="minimumSize">
+                          <size>
+                           <width>26</width>
+                           <height>26</height>
+                          </size>
+                         </property>
+                         <property name="maximumSize">
+                          <size>
+                           <width>26</width>
+                           <height>26</height>
+                          </size>
+                         </property>
+                         <property name="text">
+                          <string/>
                          </property>
                         </widget>
                        </item>
